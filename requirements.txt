@@ -1,0 +1,10 @@
+
+Flask==3.0.0
+flatbuffers==23.5.26
+fonttools==4.43.1
+gunicorn==21.2.0
+matplotlib==3.8.0
+numpy==1.26.0
+pandas==2.1.1
+pyasn1==0.5.0
+wordcloud==1.9.2
