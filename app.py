@@ -1,3 +1,5 @@
+
+
 from flask import Flask, request, send_file
 import numpy as np
 from PIL import Image
@@ -7,9 +9,11 @@ from io import BytesIO
 
 app = Flask(__name__)
 
+# Increase the default timeout for production
+app.config['REQUEST_TIMEOUT'] = 60  # Set a reasonable timeout, e.g., 60 seconds
+
 stopwords = set(STOPWORDS)
 stopwords.update(["drink", "now", "wine", "flavor", "flavors"])
-@app.route('/api/test')
 def test_route():
     return "Hello, world!"
 
@@ -51,4 +55,5 @@ def generate_wordcloud():
     return send_file(img_buffer, mimetype='image/png', as_attachment=True, download_name='wordcloud.png')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)  # Don't run in debug mode in production
+    app.run(debug=False)
