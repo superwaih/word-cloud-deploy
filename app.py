@@ -41,11 +41,11 @@ def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
 
 @app.route('/')
 def home():
-    return 'Hello, World!'
+    return 'Hello, Waker nfye hdhdhdh!'
 
 @app.route('/about')
 def about():
-    return 'About'
+    return 'testing if this works About'
 
 @app.route('/compress', methods=['POST'])
 def compress_image():
