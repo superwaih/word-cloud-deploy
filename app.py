@@ -1,59 +1,74 @@
-
-
-from flask import Flask, request, send_file
-import numpy as np
+from flask import Flask, request, jsonify
 from PIL import Image
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-import matplotlib.pyplot as plt
-from io import BytesIO
+import os
 
 app = Flask(__name__)
+def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
+    target_size = target_size_kb * 1024  # Convert KB to bytes
+    quality = 95  # Start with high quality
+    step = 5  # Quality step to reduce
+    max_iterations = 20  # Limit the number of iterations
 
-# Increase the default timeout for production
-app.config['REQUEST_TIMEOUT'] = 60  # Set a reasonable timeout, e.g., 60 seconds
+    # Open the image
+    img = Image.open(input_image_path)
 
-stopwords = set(STOPWORDS)
-stopwords.update(["drink", "now", "wine", "flavor", "flavors"])
-def test_route():
-    return "Hello, world!"
+    # Binary search for the best quality
+    for _ in range(max_iterations):
+        # Save the image with the current quality setting
+        img.save(output_image_path, quality=quality)
 
-@app.route('/api/generate_wordcloud', methods=['POST'])
-def generate_wordcloud():
-    if 'wine_mask' not in request.files:
-        return "No wine mask provided.", 400  # Indicate error with a 400 status code
+        # Check the file size
+        file_size = os.path.getsize(output_image_path)
 
-    wine_mask = request.files['wine_mask']
-    wine_mask_np = np.array(Image.open(wine_mask))
+        if file_size <= target_size:
+            return True  # Success
+        else:
+            quality -= step  # Reduce the quality
 
-    def transform_format(val):
-        return 255 if val != 0 else val
+        if quality <= 10:  # Ensure quality does not go below 10
+            break
 
-    vectorized_transform_format = np.vectorize(transform_format)
-    transformed_wine_mask = vectorized_transform_format(wine_mask_np)
+    # If quality steps are insufficient, resize the image
+    width, height = img.size
+    while file_size > target_size and width > 10 and height > 10:
+        width = int(width * 0.9)
+        height = int(height * 0.9)
+        img = img.resize((width, height), Image.ANTIALIAS)
+        img.save(output_image_path, quality=quality)
+        file_size = os.path.getsize(output_image_path)
 
-    def one_color_func(word=None, font_size=None, position=None, orientation=None, font_path=None, random_state=None):
-        h, s, l = 0, 0, 0
-        return "hsl({}, {}%, {}%)".format(h, s, l)
+    return os.path.getsize(output_image_path) <= target_size
 
-    text_input = request.form.get('text_input', '')
+@app.route('/')
+def home():
+    return 'Hello, World!'
 
-    wc = WordCloud(
-        background_color="white",
-        mask=transformed_wine_mask,
-        stopwords=stopwords,
-        max_words=200,
-        repeat=True,
-        color_func=one_color_func
-    )
+@app.route('/about')
+def about():
+    return 'About'
 
-    wc.generate(text_input.upper())
+@app.route('/compress', methods=['POST'])
+def compress_image():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
 
-    img_buffer = BytesIO()
-    wc.to_image().save(img_buffer, format='PNG')
-    img_buffer.seek(0)
+    image = request.files['image']
+    target_size_kb = int(request.form.get('target_size_kb', 100))  # Default to 100 KB if not provided
 
-    return send_file(img_buffer, mimetype='image/png', as_attachment=True, download_name='wordcloud.png')
+    input_image_path = os.path.join('uploads', image.filename)
+    output_image_path = os.path.join('compressed', image.filename)
+
+    os.makedirs('uploads', exist_ok=True)
+    os.makedirs('compressed', exist_ok=True)
+
+    image.save(input_image_path)
+
+    success = compress_image_to_size(input_image_path, output_image_path, target_size_kb)
+
+    if success:
+        return jsonify({"message": "Image compressed successfully", "compressed_image_path": output_image_path}), 200
+    else:
+        return jsonify({"error": "Failed to compress image"}), 500
 
 if __name__ == '__main__':
-    # app.run(debug=True)  # Don't run in debug mode in production
-    app.run(debug=False)
+    app.run(debug=True)
