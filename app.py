@@ -1,8 +1,12 @@
 from flask import Flask, request, jsonify
 from PIL import Image
 import os
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+
+CORS(app)  # Enable CORS for all routes
 def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
     target_size = target_size_kb * 1024  # Convert KB to bytes
     quality = 95  # Start with high quality
