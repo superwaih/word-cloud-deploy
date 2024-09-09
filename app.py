@@ -3,10 +3,9 @@ from PIL import Image
 import os
 from flask_cors import CORS
 
-
 app = Flask(__name__)
+CORS(app)
 
-CORS(app)  # Enable CORS for all routes
 def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
     target_size = target_size_kb * 1024  # Convert KB to bytes
     quality = 95  # Start with high quality
@@ -19,7 +18,7 @@ def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
     # Binary search for the best quality
     for _ in range(max_iterations):
         # Save the image with the current quality setting
-        img.save(output_image_path, quality=quality)
+        img.save(output_image_path, optimize=True, quality=quality)
 
         # Check the file size
         file_size = os.path.getsize(output_image_path)
@@ -38,18 +37,14 @@ def compress_image_to_size(input_image_path, output_image_path, target_size_kb):
         width = int(width * 0.9)
         height = int(height * 0.9)
         img = img.resize((width, height), Image.ANTIALIAS)
-        img.save(output_image_path, quality=quality)
+        img.save(output_image_path, optimize=True, quality=quality)
         file_size = os.path.getsize(output_image_path)
 
     return os.path.getsize(output_image_path) <= target_size
 
 @app.route('/')
 def home():
-    return 'Hello, Waker nfye hdhdhdh!'
-
-@app.route('/about')
-def about():
-    return 'testing if this works About'
+    return 'Hello, Welcome to the Image Compression App!'
 
 @app.route('/compress', methods=['POST'])
 def compress_image():
@@ -67,7 +62,10 @@ def compress_image():
 
     image.save(input_image_path)
 
-    success = compress_image_to_size(input_image_path, output_image_path, target_size_kb)
+    try:
+        success = compress_image_to_size(input_image_path, output_image_path, target_size_kb)
+    except Exception as e:
+        return jsonify({"error": f"There was an error compressing the image: {str(e)}"}), 500
 
     if success:
         return jsonify({"message": "Image compressed successfully", "compressed_image_path": output_image_path}), 200
