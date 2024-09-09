@@ -82,7 +82,7 @@ from PIL import Image
 import io
 
 app = Flask(__name__)
-CORS(app, resources={r"/compress": {"origins": "http://localhost:3000"}})  # Allow requests from Next.js dev server
+CORS(app, resources={r"/compress": {"origins": "http://localhost:4755"}})  # Allow requests from Next.js dev server
 
 def compress_image_to_size(image, target_size_kb):
     target_size = target_size_kb * 1024  # Convert KB to bytes
